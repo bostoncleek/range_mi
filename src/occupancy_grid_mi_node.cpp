@@ -58,6 +58,7 @@ class OccupancyGridMI {
 
     void map_callback(const nav_msgs::OccupancyGrid & map_msg)
     {
+      ROS_INFO("Map received");
       map = map_msg;
     }
 
