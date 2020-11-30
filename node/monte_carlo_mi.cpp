@@ -46,6 +46,7 @@ class MonteCarloMI {
     }
 
     void map_callback(const nav_msgs::OccupancyGrid & map_msg) {
+
       // Store map information
       map_info = map_msg.info;
       map_header = map_msg.header;
@@ -92,6 +93,9 @@ class MonteCarloMI {
     }
 
     void compute_mi() {
+
+      std::cout << "start" << std::endl;
+
       // Clear the mutual information
       std::fill(mi.begin(), mi.end(), 0);
 
@@ -196,11 +200,19 @@ class MonteCarloMI {
         }
 
         // Visualize
-        if (visualize and visualize_more) draw_map();
+        if (visualize and visualize_more)
+        {
+          draw_map();
+          std::cout << "draw" << std::endl;
+        }
+
 
         // Plot
         publish_mi();
       }
+
+      std::cout << "end" << std::endl;
+
     }
 
     void publish_mi() {

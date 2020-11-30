@@ -49,6 +49,7 @@ endif()
 if(DEFINED CATKIN_DEVEL_PREFIX)
   # Find build dependencies
   find_package(catkin REQUIRED COMPONENTS
+		std_srvs
     roscpp
     nav_msgs
     geometry_msgs
@@ -75,7 +76,7 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
   catkin_package(
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS message_runtime
+    CATKIN_DEPENDS message_runtime std_msgs
   )
 
   # Add nodes

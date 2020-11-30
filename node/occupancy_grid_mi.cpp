@@ -5,13 +5,15 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <range_mi/MIGrid.h>
 #include <geometry_msgs/PointStamped.h>
+#include <std_srvs/Empty.h>
 
 #include <range_mi/grid_mi.hpp>
 
 class OccupancyGridMI {
 
   public:
-    OccupancyGridMI() {
+    OccupancyGridMI()
+    {
       // Initialize the node handle
       n = ros::NodeHandle("~");
 
@@ -42,19 +44,35 @@ class OccupancyGridMI {
       // Subscribe to maps and clicked points
       map_sub = n.subscribe(map_topic, 1, &OccupancyGridMI::map_callback, this);
       click_sub = n.subscribe(click_condition_topic, 1, &OccupancyGridMI::click_callback, this);
+
+      start_server = n.advertiseService("/start_mi", &OccupancyGridMI::setStartService, this);
     }
 
-    void map_callback(const nav_msgs::OccupancyGrid & map_msg) {
+    bool setStartService(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
+    {
+      // start_call = true;
+      compute_mi();
+      return true;
+    }
+
+    void map_callback(const nav_msgs::OccupancyGrid & map_msg)
+    {
+      map = map_msg;
+    }
+
+    void compute_mi()
+    {
+
       // Store map information
-      map_info = map_msg.info;
-      map_header = map_msg.header;
+      map_info = map.info;
+      map_header = map.header;
 
       // Convert to probability
       vacancy = std::vector<double>(map_info.height * map_info.width);
       for (unsigned int i = 0; i < vacancy.size(); i++) {
-        vacancy[i] = 1 - map_msg.data[i]/99.;
+        vacancy[i] = 1 - map.data[i]/99.;
         if (vacancy[i] < 0  or vacancy[i] > 1) {
-          std::cout << "Vacancy out of bounds! " << vacancy[i] << std::endl;
+          // std::cout << "Vacancy out of bounds! " << vacancy[i] << std::endl;
           vacancy[i] = 0;
         }
 
@@ -72,10 +90,6 @@ class OccupancyGridMI {
           noise_dev * noise_truncation,
           noise_integration_step);
 
-      compute_mi();
-    }
-
-    void compute_mi() {
       mi_computer.reset_mi();
 
       auto start = std::chrono::high_resolution_clock::now();
@@ -96,9 +110,9 @@ class OccupancyGridMI {
           theta += dtheta;
 
           // Draw every time a spatial section is completed
-          if (visualize and visualize_more) {
-            draw_map();
-          }
+          // if (visualize and visualize_more) {
+          //   draw_map();
+          // }
 
           if (theta < 2 * M_PI) {
             //mi_computer.reset_mi();
@@ -114,7 +128,9 @@ class OccupancyGridMI {
         map_info.height << "x" << map_info.width << " map with " <<
         num_beams << " beams took " << elapsed.count() << "seconds." << std::endl;
 
-      if (visualize) draw_map();
+      // if (visualize)
+
+      draw_map();
       publish_mi();
     }
 
@@ -173,6 +189,10 @@ class OccupancyGridMI {
     ros::Publisher mi_pub,
       mi_map_pub,
       conditional_map_pub;
+
+    ros::ServiceServer start_server;
+
+    nav_msgs::OccupancyGrid map;
 
     // Parameters
     int num_beams;
