@@ -15,37 +15,38 @@ class OccupancyGridMI {
     OccupancyGridMI()
     {
       // Initialize the node handle
-      n = ros::NodeHandle("~");
+      nh = ros::NodeHandle();
+      ros::NodeHandle pnh("~");
 
       // Fetch the ROS parameters
-      std::string map_topic, mi_topic;
-      n.getParam("map_topic", map_topic);
-      n.getParam("mi_topic", mi_topic);
+      // std::string map_topic, mi_topic;
+      // n.getParam("map_topic", map_topic);
+      // n.getParam("mi_topic", mi_topic);
       // Ray tracing parameters
-      n.getParam("num_beams", num_beams);
-      n.getParam("condition_steps", condition_steps);
+      pnh.getParam("num_beams", num_beams);
+      pnh.getParam("condition_steps", condition_steps);
       // Noise parameters
-      n.getParam("noise_dev", noise_dev);
-      n.getParam("noise_truncation", noise_truncation);
-      n.getParam("noise_integration_step", noise_integration_step);
+      pnh.getParam("noise_dev", noise_dev);
+      pnh.getParam("noise_truncation", noise_truncation);
+      pnh.getParam("noise_integration_step", noise_integration_step);
       // Visualization vvv
-      std::string click_condition_topic, mi_map_topic, conditional_map_topic;
-      n.getParam("visualize", visualize);
-      n.getParam("visualize_more", visualize_more);
-      n.getParam("click_condition_topic", click_condition_topic);
-      n.getParam("mi_map_topic", mi_map_topic);
-      n.getParam("conditional_map_topic", conditional_map_topic);
+      // std::string click_condition_topic, mi_map_topic, conditional_map_topic;
+      pnh.getParam("visualize", visualize);
+      pnh.getParam("visualize_more", visualize_more);
+      // n.getParam("click_condition_topic", click_condition_topic);
+      // n.getParam("mi_map_topic", mi_map_topic);
+      // n.getParam("conditional_map_topic", conditional_map_topic);
 
       // Construct a publisher for mutual information
-      mi_pub = n.advertise<range_mi::MIGrid>(mi_topic, 1, true);
-      mi_map_pub = n.advertise<nav_msgs::OccupancyGrid>(mi_map_topic, 1, true);
-      conditional_map_pub = n.advertise<nav_msgs::OccupancyGrid>(conditional_map_topic, 1, true);
+      mi_pub = nh.advertise<range_mi::MIGrid>("mi", 1, true);
+      mi_map_pub = nh.advertise<nav_msgs::OccupancyGrid>("mi_map", 1, true);
+      conditional_map_pub = nh.advertise<nav_msgs::OccupancyGrid>("conditional_map", 1, true);
 
       // Subscribe to maps and clicked points
-      map_sub = n.subscribe(map_topic, 1, &OccupancyGridMI::map_callback, this);
-      click_sub = n.subscribe(click_condition_topic, 1, &OccupancyGridMI::click_callback, this);
+      map_sub = nh.subscribe("map", 1, &OccupancyGridMI::map_callback, this);
+      click_sub = nh.subscribe("clicked_point", 1, &OccupancyGridMI::click_callback, this);
 
-      start_server = n.advertiseService("/start_mi", &OccupancyGridMI::setStartService, this);
+      start_server = nh.advertiseService("start_mi", &OccupancyGridMI::setStartService, this);
     }
 
     bool setStartService(std_srvs::Empty::Request&, std_srvs::Empty::Response&)
@@ -62,7 +63,7 @@ class OccupancyGridMI {
 
     void compute_mi()
     {
-
+      ROS_INFO("Starting MI");
       // Store map information
       map_info = map.info;
       map_header = map.header;
@@ -184,7 +185,7 @@ class OccupancyGridMI {
     }
 
   private:
-    ros::NodeHandle n;
+    ros::NodeHandle nh;
     ros::Subscriber map_sub, click_sub;
     ros::Publisher mi_pub,
       mi_map_pub,
