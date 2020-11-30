@@ -1,8 +1,8 @@
 <launch>
 
   <!-- Launch a map from the maps folder-->
-  <arg name="map" default="$(find range_mi)/maps/building_31_incomplete.yaml"/>
-  <!-- <arg name="map" default="$(find range_mi)/maps/maze.yaml"/> -->
+  <!-- <arg name="map" default="$(find range_mi)/maps/building_31_incomplete.yaml"/> -->
+  <arg name="map" default="$(find range_mi)/maps/maze.yaml"/>
   <node pkg="map_server" name="map_server" type="map_server" args="$(arg map)"/>
 
   <!-- Launch the visualizer -->
