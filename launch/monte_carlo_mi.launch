@@ -7,7 +7,7 @@
 
   <!-- Launch the visualizer -->
   <node pkg="range_mi" name="monte_carlo_mi" type="monte_carlo_mi" output="screen">
-    <rosparam command="load" file="$(find range_mi)/launch/params.yaml"/>
+    <rosparam command="load" file="$(find range_mi)/config/params.yaml"/>
   </node>
 
 </launch>

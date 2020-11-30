@@ -1,99 +1,89 @@
-cmake_minimum_required(VERSION 3.1)
-
+cmake_minimum_required(VERSION 3.9)
 project(range_mi)
 
-set(CMAKE_CXX_STANDARD 11)
+# add compile options
+add_compile_options(-Wall -Wextra)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE Release)
-endif()
+# Compile as C++20
+set(CMAKE_CXX_STANDARD 20)
+# don't use gnu extensions
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+find_package(catkin REQUIRED COMPONENTS
+	std_srvs
+	std_msgs
+	roscpp
+	nav_msgs
+	geometry_msgs
+	message_generation
+)
 
+add_message_files(
+  FILES
+  MIGrid.msg
+)
 
-######################################
-# Compile the library >
-######################################
+generate_messages(
+	DEPENDENCIES
+	std_msgs
+)
 
-# Add includes
-include_directories(include)
-file(GLOB SRC_FILES src/*.cpp)
-add_library(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} ${LIBS})
-set(LIBS ${LIBS} ${PROJECT_NAME})
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS message_runtime std_msgs
+)
 
-# Install the library to CMAKE_INSTALL_PREFIX
-# which defaults to /usr/local
+include_directories(
+include
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_library(${PROJECT_NAME}
+	src/${PROJECT_NAME}/grid_line.cpp
+	src/${PROJECT_NAME}/grid_mi.cpp
+	include/${PROJECT_NAME}/barely_distorted.hpp
+	include/${PROJECT_NAME}/distorted.hpp
+	include/${PROJECT_NAME}/p_not_measured.hpp
+)
+
+add_executable(monte_carlo_mi src/monte_carlo_mi_node.cpp)
+add_executable(occupancy_grid_mi src/occupancy_grid_mi_node.cpp)
+
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(monte_carlo_mi
+  ${catkin_LIBRARIES}
+	${PROJECT_NAME}
+)
+
+target_link_libraries(occupancy_grid_mi
+  ${catkin_LIBRARIES}
+	${PROJECT_NAME}
+)
+
+install(TARGETS monte_carlo_mi occupancy_grid_mi
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 install(TARGETS ${PROJECT_NAME}
-        DESTINATION lib)
-install(DIRECTORY include/${PROJECT_NAME}
-        DESTINATION include)
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
 
-######################################
-# < End compile the library
-######################################
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 
-
-######################################
-# Add tests and ROS >
-######################################
+install(DIRECTORY config/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY launch/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 option(BUILD_TESTS "BUILD_TESTS" OFF)
 if (BUILD_TESTS)
   include_directories(test)
   add_subdirectory(test)
 endif()
-
-if(DEFINED CATKIN_DEVEL_PREFIX)
-  # Find build dependencies
-  find_package(catkin REQUIRED COMPONENTS
-		std_srvs
-    roscpp
-    nav_msgs
-    geometry_msgs
-    message_generation
-    )
-
-  # Add the messages
-  file(GLOB MSG_FILES msg/*.msg)
-  foreach(_file ${MSG_FILES})
-    get_filename_component(_name ${_file} NAME)
-    add_message_files(
-      FILES
-      ${_name}
-    )
-  endforeach()
-
-  # Generate messages
-  generate_messages(
-    DEPENDENCIES
-    std_msgs
-  )
-
-  # Define the package
-  catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS message_runtime std_msgs
-  )
-
-  # Add nodes
-  include_directories(node)
-  add_subdirectory(node)
-
-  # Install the library
-  install(TARGETS ${PROJECT_NAME}
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
-  install(DIRECTORY include/${PROJECT_NAME}/
-    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  )
-endif()
-
-######################################
-# < End add tests and ROS
-######################################
