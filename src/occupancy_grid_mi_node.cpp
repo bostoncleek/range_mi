@@ -1,6 +1,8 @@
 #include <ros/ros.h>
 
 #include <chrono>
+#include <cmath>
+#include <numeric>
 
 #include <nav_msgs/OccupancyGrid.h>
 #include <range_mi/MIGrid.h>
@@ -72,16 +74,13 @@ class OccupancyGridMI {
       // Convert to probability
       vacancy = std::vector<double>(map_info.height * map_info.width);
       for (unsigned int i = 0; i < vacancy.size(); i++) {
-        vacancy[i] = 1 - map.data[i]/99.;
-        if (vacancy[i] < 0  or vacancy[i] > 1) {
-          // std::cout << "Vacancy out of bounds! " << vacancy[i] << std::endl;
-          vacancy[i] = 0;
+        vacancy[i] = 1.0 - map.data[i] / 99.0;
+        if (vacancy[i] < 0.0 || vacancy[i] > 1.0)
+        {
+          vacancy[i] = 0.0;
         }
 
         vacancy[i] = std::pow(vacancy[i], map_info.resolution);
-        //if (vacancy[i] > 0 and vacancy[i] < 1)  {
-          //vacancy[i] = 0.99;
-        //}
       }
 
       // Initialize mutual information computation on the grid
@@ -96,10 +95,13 @@ class OccupancyGridMI {
 
       auto start = std::chrono::high_resolution_clock::now();
 
-      double spatial_interpolation = 0;
-      double theta = 0;
-      double dtheta = (2 * M_PI)/num_beams;
-      while (theta < 2 * M_PI) {
+      double spatial_interpolation = 0.0;
+      double theta = 0.0;
+      double dtheta = (2.0 * M_PI) / num_beams;
+      while (theta < 2.0 * M_PI) {
+
+        // std::cout << "angle: " << theta << std::endl;
+
         // Add the beam
         mi_computer.compute_mi_beam(
             vacancy.data(),
@@ -107,7 +109,7 @@ class OccupancyGridMI {
             dtheta,
             spatial_interpolation);
 
-        if (spatial_interpolation == 0) {
+        if (std::abs(spatial_interpolation) < 1.0e-12) {
           // Move to the next beam
           theta += dtheta;
 
@@ -116,7 +118,7 @@ class OccupancyGridMI {
           //   draw_map();
           // }
 
-          if (theta < 2 * M_PI) {
+          if (theta < 2.0 * M_PI) {
             //mi_computer.reset_mi();
           }
           if (not ros::ok()) break;
@@ -140,7 +142,7 @@ class OccupancyGridMI {
       // Condition the map on the clicked point
       double x = click_msg.point.x/map_info.resolution;
       double y = click_msg.point.y/map_info.resolution;
-      double dtheta = (2 * M_PI)/condition_steps;
+      double dtheta = (2.0 * M_PI)/condition_steps;
       mi_computer.condition(
           vacancy.data(),
           x, y,
@@ -169,19 +171,27 @@ class OccupancyGridMI {
       mi_map_msg.header = map_header;
       mi_map_msg.info = map_info;
       mi_map_msg.data = std::vector<int8_t>(mi_computer.mi().size());
+
       double mi_max = *std::max_element(mi_computer.mi().begin(), mi_computer.mi().end());
-      for (size_t i = 0; i < mi_computer.mi().size(); i++) {
+      double mi_min = *std::min_element(mi_computer.mi().begin(), mi_computer.mi().end());
+      double delta = mi_max - mi_min;
+
+      for (size_t i = 0; i < mi_computer.mi().size(); i++)
+      {
         // Normalize between 0 and 1
-        double normalized = mi_computer.mi()[i]/mi_max;
+        double normalized = (mi_computer.mi()[i] - mi_min) / delta;
+
         // Change to 100%
-        mi_map_msg.data[i] = 100 * (1 - normalized);
+        mi_map_msg.data[i] = static_cast<int8_t>(100.0 * normalized);
       }
       mi_map_pub.publish(mi_map_msg);
+
+
 
       // Do the same with p not measured
       nav_msgs::OccupancyGrid conditional_map_msg = mi_map_msg;
       for (size_t i = 0; i < conditional_map_msg.data.size(); i++)
-        conditional_map_msg.data[i] = 100 * (1 - mi_computer.p_not_measured()[i]);
+        conditional_map_msg.data[i] = 100.0 * (1.0 - mi_computer.p_not_measured()[i]);
       conditional_map_pub.publish(conditional_map_msg);
     }
 

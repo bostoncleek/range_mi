@@ -31,9 +31,9 @@ public:
   GridMI(
       unsigned int height,
       unsigned int width,
-      double noise_dev=0,
-      double noise_half_width=0,
-      double integration_step=0);
+      double noise_dev=0.0,
+      double noise_half_width=0.0,
+      double integration_step=0.0);
 
   void compute_mi_beam(
       const double * const vacancy,
@@ -54,10 +54,10 @@ public:
       double dtheta);
 
   void reset_mi() {
-    std::fill(mi_.begin(), mi_.end(), 0);
+    std::fill(mi_.begin(), mi_.end(), 0.0);
   }
   void reset_p_not_measured() {
-    std::fill(p_not_measured_.begin(), p_not_measured_.end(), 1);
+    std::fill(p_not_measured_.begin(), p_not_measured_.end(), 1.0);
   }
 
   const std::vector<double> & mi() const {
