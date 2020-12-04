@@ -51,6 +51,9 @@ add_library(${PROJECT_NAME}
 add_executable(monte_carlo_mi src/monte_carlo_mi_node.cpp)
 add_executable(occupancy_grid_mi src/occupancy_grid_mi_node.cpp)
 
+add_dependencies(monte_carlo_mi ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(occupancy_grid_mi ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
